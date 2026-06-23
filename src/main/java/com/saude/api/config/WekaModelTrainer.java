@@ -43,7 +43,9 @@ public class WekaModelTrainer {
         Path modelPath = Paths.get("src", "main", "resources", "model", "Modelo_SVM_Weka_" + group + ".model");
         
         SMO smo = new SMO();
-        smo.setOptions(new String[]{"-M"}); // Ativa o suporte adequado para as probabilidades no Weka (fitLogisticModels)
+        // Evita usar smo.setOptions(new String[]{"-M"}) pois ele usa reflection (Utils.forName)
+        // que falha em Fat JARs do Spring Boot devido ao PluginManager do Weka.
+        smo.setBuildCalibrationModels(true);
         
         return getOrTrainModel(group, modelPath, datasetClasspath, smo, "SVM (SMO)");
     }
