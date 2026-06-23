@@ -59,6 +59,14 @@ public class WekaModelTrainer {
     }
 
     private Classifier getOrTrainModel(PatientGroup group, Path targetModelPath, String datasetClasspath, Classifier emptyClassifier, String algoName) throws Exception {
+        // Tenta ler do classpath primeiro (ideal para Fat JAR do Spring Boot)
+        java.io.InputStream is = getClass().getClassLoader().getResourceAsStream("model/" + targetModelPath.getFileName().toString());
+        if (is != null) {
+            log.info("[{}] Modelo '{}' encontrado no classpath. Carregando-o...", group, algoName);
+            return (Classifier) weka.core.SerializationHelper.read(is);
+        }
+
+        // Fallback para disco local (desenvolvimento)
         if (Files.exists(targetModelPath)) {
             log.info("[{}] Modelo '{}' encontrado no disco. Carregando-o...", group, algoName);
             return (Classifier) weka.core.SerializationHelper.read(targetModelPath.toString());

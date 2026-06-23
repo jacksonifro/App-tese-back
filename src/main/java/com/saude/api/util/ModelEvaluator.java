@@ -20,10 +20,17 @@ public class ModelEvaluator {
 
     public static ModelMetrics evaluateModelAndCache(Classifier classifier, Instances dataset, String modelName, String cacheFileName) {
         try {
+            // Tenta carregar as metricas do Classpath primeiro (funciona no Spring Boot Fat JAR)
+            java.io.InputStream is = ModelEvaluator.class.getClassLoader().getResourceAsStream("model/" + cacheFileName);
+            if (is != null) {
+                log.info("Lendo metricas de cache para o modelo {} do Classpath (arquivo {})", modelName, cacheFileName);
+                return objectMapper.readValue(is, ModelMetrics.class);
+            }
+
+            // Fallback para o arquivo fisico local (durante o desenvolvimento)
             Path cachePath = Paths.get("src", "main", "resources", "model", cacheFileName);
-            
             if (Files.exists(cachePath)) {
-                log.info("Lendo metricas de cache para o modelo {} no arquivo {}", modelName, cacheFileName);
+                log.info("Lendo metricas de cache para o modelo {} do disco local", modelName);
                 return objectMapper.readValue(cachePath.toFile(), ModelMetrics.class);
             }
 
