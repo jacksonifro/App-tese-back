@@ -30,6 +30,23 @@ public class WekaModelLoader {
     @PostConstruct
     public void init() {
         log.info("Inicializando carregamento/treinamento dos modelos Weka...");
+        
+        try {
+            // Registra classes padrao do Weka manualmente para evitar erro "Não foi possível encontrar uma classe permitida"
+            // Isso ocorre em executaveis do Spring Boot (Fat JAR) porque o Weka não consegue ler seus proprios arquivos .props
+            weka.core.PluginManager.addPlugin(weka.classifiers.Classifier.class.getName(), "weka.classifiers.functions.Logistic", "weka.classifiers.functions.Logistic");
+            weka.core.PluginManager.addPlugin(weka.classifiers.Classifier.class.getName(), "weka.classifiers.functions.SMO", "weka.classifiers.functions.SMO");
+            weka.core.PluginManager.addPlugin(weka.classifiers.Classifier.class.getName(), "weka.classifiers.lazy.IBk", "weka.classifiers.lazy.IBk");
+            weka.core.PluginManager.addPlugin(weka.classifiers.Classifier.class.getName(), "weka.classifiers.meta.LogitBoost", "weka.classifiers.meta.LogitBoost");
+            weka.core.PluginManager.addPlugin(weka.classifiers.Classifier.class.getName(), "weka.classifiers.trees.RandomForest", "weka.classifiers.trees.RandomForest");
+            weka.core.PluginManager.addPlugin(weka.classifiers.Classifier.class.getName(), "weka.classifiers.trees.RandomTree", "weka.classifiers.trees.RandomTree");
+            weka.core.PluginManager.addPlugin(weka.classifiers.Classifier.class.getName(), "weka.classifiers.trees.DecisionStump", "weka.classifiers.trees.DecisionStump");
+            weka.core.PluginManager.addPlugin(weka.classifiers.functions.supportVector.Kernel.class.getName(), "weka.classifiers.functions.supportVector.PolyKernel", "weka.classifiers.functions.supportVector.PolyKernel");
+            weka.core.PluginManager.addPlugin(weka.core.neighboursearch.NearestNeighbourSearch.class.getName(), "weka.core.neighboursearch.LinearNNSearch", "weka.core.neighboursearch.LinearNNSearch");
+        } catch (Exception e) {
+            log.warn("Nao foi possivel registrar os plugins Weka: " + e.getMessage());
+        }
+
         long startTime = System.currentTimeMillis();
 
         try {
