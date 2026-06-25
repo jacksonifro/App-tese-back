@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@CrossOrigin(origins = "*")
+
 @RequestMapping("/api/historico")
 @RequiredArgsConstructor
 @Tag(name = "Histórico", description = "Gerenciamento de predições passadas")

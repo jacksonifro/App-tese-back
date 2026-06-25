@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@CrossOrigin(origins = "*")
+
 @RequestMapping("/api/pacientes")
 @RequiredArgsConstructor
 @Tag(name = "Pacientes", description = "Gerenciamento do Cadastro de Pacientes")
