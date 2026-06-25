@@ -32,6 +32,10 @@ class PredictionServiceTest {
         Mockito.when(geminiLlmService.analyzeCaseAsync(any(), anyString()))
                 .thenReturn(CompletableFuture.completedFuture("Analise mockada de teste Gemini. [PREDICAO: CURA]"));
 
+        GroqLlmService groqLlmService = Mockito.mock(GroqLlmService.class);
+        Mockito.when(groqLlmService.analyzeCaseAsync(any(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture("Analise mockada de teste Groq. [PREDICAO: CURA]"));
+
         com.saude.api.repository.PacienteRepository pacienteRepo = Mockito
                 .mock(com.saude.api.repository.PacienteRepository.class);
         com.saude.api.repository.AtendimentoRepository atendimentoRepo = Mockito
@@ -39,7 +43,7 @@ class PredictionServiceTest {
         com.saude.api.repository.PredicaoRepository predicaoRepo = Mockito
                 .mock(com.saude.api.repository.PredicaoRepository.class);
 
-        predictionService = new PredictionService(loader, geminiLlmService, mapper, pacienteRepo, atendimentoRepo,
+        predictionService = new PredictionService(loader, geminiLlmService, groqLlmService, mapper, pacienteRepo, atendimentoRepo,
                 predicaoRepo);
     }
 

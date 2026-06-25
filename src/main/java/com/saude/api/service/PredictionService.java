@@ -247,7 +247,7 @@ public class PredictionService {
         registerWekaVote(votes, scorePanel, "Gradient Boosting", gb);
 
         registerLlmVote(votes, scorePanel, "Gemini", geminiTxt);
-        registerLlmVote(votes, scorePanel, "Groq (Llama3)", groqTxt);
+        registerLlmVote(votes, scorePanel, "Groq (Llama3.1)", groqTxt);
 
         String finalVerdict = scorePanel.get("Obito") > scorePanel.get("Cura") ? "Obito" : "Cura";
 
