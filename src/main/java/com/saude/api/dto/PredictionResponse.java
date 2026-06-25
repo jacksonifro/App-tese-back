@@ -14,6 +14,7 @@ public class PredictionResponse {
     private ModelPredictionResult svm;
     private ModelPredictionResult gradientBoosting;
     private String llmAnalysis; // Gemini
+    private String groqAnalysis;
     private VerdictBoard verdictBoard;
     private long processingTimeMs;
 }

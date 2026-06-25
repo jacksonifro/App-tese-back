@@ -32,6 +32,7 @@ public class PredictionService {
 
     private final WekaModelLoader wekaModelLoader;
     private final GeminiLlmService geminiLlmService;
+    private final GroqLlmService groqLlmService;
     private final ObjectMapper objectMapper;
     private final com.saude.api.repository.PacienteRepository pacienteRepository;
     private final com.saude.api.repository.AtendimentoRepository atendimentoRepository;
@@ -159,6 +160,7 @@ public class PredictionService {
 
         // 1. Disparar chamadas LLM Assincronas (Paralelas)
         CompletableFuture<String> geminiFuture = geminiLlmService.analyzeCaseAsync(requestDto, group.name());
+        CompletableFuture<String> groqFuture = groqLlmService.analyzeCaseAsync(requestDto, group.name());
 
         // 2. Preparar Instancia do Weka
         Map<String, Object> attributes = objectMapper.convertValue(requestDto, new TypeReference<Map<String, Object>>() {});
@@ -177,15 +179,17 @@ public class PredictionService {
 
             // 4. Aguardar o resultado das LLMs (TimeOut de 15s para nao travar a API)
             String geminiAnalysis = "Indisponivel";
+            String groqAnalysis = "Indisponivel";
             try {
-                geminiFuture.get(15, TimeUnit.SECONDS);
-                geminiAnalysis = geminiFuture.isDone() && !geminiFuture.isCompletedExceptionally() ? geminiFuture.join() : "Erro de integracao ou Timeout (Gemini).";
+                CompletableFuture.allOf(geminiFuture, groqFuture).get(15, TimeUnit.SECONDS);
             } catch (Exception e) {
                 log.warn("Timeout ou Erro aguardando LLMs.");
             }
+            geminiAnalysis = geminiFuture.isDone() && !geminiFuture.isCompletedExceptionally() ? geminiFuture.join() : "Erro de integracao ou Timeout (Gemini).";
+            groqAnalysis = groqFuture.isDone() && !groqFuture.isCompletedExceptionally() ? groqFuture.join() : "Erro de integracao ou Timeout (Groq).";
 
             // 5. Consolidar os resultados via Votacao Ponderada (Weighted Majority Voting)
-            VerdictBoard board = calculateConsolidated(rfResult, knnResult, lrResult, svmResult, gbResult, geminiAnalysis);
+            VerdictBoard board = calculateConsolidated(rfResult, knnResult, lrResult, svmResult, gbResult, geminiAnalysis, groqAnalysis);
 
             long processingTime = System.currentTimeMillis() - startTime;
             log.info("Predicao consolidada concluida em {} ms. Veredito final: {}", processingTime, board.getFinalVerdict());
@@ -197,6 +201,7 @@ public class PredictionService {
                     .svm(svmResult)
                     .gradientBoosting(gbResult)
                     .llmAnalysis(geminiAnalysis)
+                    .groqAnalysis(groqAnalysis)
                     .verdictBoard(board)
                     .processingTimeMs(processingTime)
                     .build();
@@ -228,7 +233,7 @@ public class PredictionService {
     private VerdictBoard calculateConsolidated(
             ModelPredictionResult rf, ModelPredictionResult knn, ModelPredictionResult lr, 
             ModelPredictionResult svm, ModelPredictionResult gb, 
-            String geminiTxt) {
+            String geminiTxt, String groqTxt) {
 
         List<VoteRecord> votes = new ArrayList<>();
         Map<String, Double> scorePanel = new HashMap<>();
@@ -242,6 +247,7 @@ public class PredictionService {
         registerWekaVote(votes, scorePanel, "Gradient Boosting", gb);
 
         registerLlmVote(votes, scorePanel, "Gemini", geminiTxt);
+        registerLlmVote(votes, scorePanel, "Groq (Llama3)", groqTxt);
 
         String finalVerdict = scorePanel.get("Obito") > scorePanel.get("Cura") ? "Obito" : "Cura";
 
