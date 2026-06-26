@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.saude.api.config.WekaModelLoader;
 import com.saude.api.config.WekaModelTrainer;
 import com.saude.api.dto.GestanteRequest;
+import com.saude.api.dto.LlmAnalysisResult;
 import com.saude.api.dto.PredictionResponse;
 import com.saude.api.enums.PatientGroup;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,12 +30,20 @@ class PredictionServiceTest {
         ObjectMapper mapper = new ObjectMapper();
 
         GeminiLlmService geminiLlmService = Mockito.mock(GeminiLlmService.class);
+        LlmAnalysisResult mockGeminiResult = LlmAnalysisResult.builder()
+                .parecer("Analise mockada de teste Gemini.")
+                .veredito("CURA")
+                .build();
         Mockito.when(geminiLlmService.analyzeCaseAsync(any(), anyString()))
-                .thenReturn(CompletableFuture.completedFuture("Analise mockada de teste Gemini. [PREDICAO: CURA]"));
+                .thenReturn(CompletableFuture.completedFuture(mockGeminiResult));
 
         GroqLlmService groqLlmService = Mockito.mock(GroqLlmService.class);
+        LlmAnalysisResult mockGroqResult = LlmAnalysisResult.builder()
+                .parecer("Analise mockada de teste Groq.")
+                .veredito("CURA")
+                .build();
         Mockito.when(groqLlmService.analyzeCaseAsync(any(), anyString()))
-                .thenReturn(CompletableFuture.completedFuture("Analise mockada de teste Groq. [PREDICAO: CURA]"));
+                .thenReturn(CompletableFuture.completedFuture(mockGroqResult));
 
         com.saude.api.repository.PacienteRepository pacienteRepo = Mockito
                 .mock(com.saude.api.repository.PacienteRepository.class);

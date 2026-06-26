@@ -3,6 +3,7 @@ package com.saude.api.service;
 import com.saude.api.dto.PacienteDTO;
 import com.saude.api.entity.Paciente;
 import com.saude.api.repository.PacienteRepository;
+import com.saude.api.repository.PredicaoRepository;
 import com.saude.api.util.PacienteMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PacienteService {
 
     private final PacienteRepository pacienteRepository;
+    private final PredicaoRepository predicaoRepository;
     private final PacienteMapper pacienteMapper;
 
     @Transactional
@@ -46,17 +48,25 @@ public class PacienteService {
     public PacienteDTO findById(Long id) {
         Paciente entity = pacienteRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Paciente não encontrado com o ID: " + id));
-        return pacienteMapper.toDTO(entity);
+        PacienteDTO dto = pacienteMapper.toDTO(entity);
+        dto.setQtdPredicoes((int) predicaoRepository.countByAtendimentoPacienteId(entity.getId()));
+        return dto;
     }
 
     @Transactional(readOnly = true)
     public Page<PacienteDTO> findAll(String search, Pageable pageable) {
+        Page<Paciente> page;
         if (search != null && !search.trim().isEmpty()) {
-            return pacienteRepository.findByNomeContainingIgnoreCaseOrCpfContaining(search, search, pageable)
-                    .map(pacienteMapper::toDTO);
+            page = pacienteRepository.findByNomeContainingIgnoreCaseOrCpfContaining(search, search, pageable);
+        } else {
+            page = pacienteRepository.findAll(pageable);
         }
-        return pacienteRepository.findAll(pageable)
-                .map(pacienteMapper::toDTO);
+        
+        return page.map(entity -> {
+            PacienteDTO dto = pacienteMapper.toDTO(entity);
+            dto.setQtdPredicoes((int) predicaoRepository.countByAtendimentoPacienteId(entity.getId()));
+            return dto;
+        });
     }
 
     @Transactional

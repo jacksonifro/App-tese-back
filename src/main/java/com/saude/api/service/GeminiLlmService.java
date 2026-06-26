@@ -2,6 +2,7 @@ package com.saude.api.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.saude.api.dto.BasePredictionRequest;
+import com.saude.api.dto.LlmAnalysisResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,14 +31,33 @@ public class GeminiLlmService {
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public CompletableFuture<String> analyzeCaseAsync(BasePredictionRequest request, String patientGroup) {
+    public CompletableFuture<LlmAnalysisResult> analyzeCaseAsync(BasePredictionRequest request, String patientGroup) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 String prompt = buildPrompt(request, patientGroup);
-                return callGemini(prompt);
+                String responseText = callGemini(prompt);
+                
+                // Limpar formatacao markdown do json se a llm retornar
+                if (responseText.contains("```json")) {
+                    responseText = responseText.substring(responseText.indexOf("```json") + 7);
+                    if (responseText.contains("```")) {
+                        responseText = responseText.substring(0, responseText.lastIndexOf("```"));
+                    }
+                }
+                
+                try {
+                    return objectMapper.readValue(responseText.trim(), LlmAnalysisResult.class);
+                } catch (Exception e) {
+                    log.warn("Erro ao fazer parse do JSON da LLM: {}. Fallback para texto plano.", responseText);
+                    return LlmAnalysisResult.builder()
+                            .parecer(responseText)
+                            .veredito("INDEFINIDO")
+                            .build();
+                }
+                
             } catch (Exception e) {
                 log.error("Erro ao chamar a LLM Gemini", e);
-                return "Erro na analise da LLM: " + e.getMessage();
+                return LlmAnalysisResult.builder().parecer("Erro na analise da LLM: " + e.getMessage()).build();
             }
         });
     }
@@ -55,7 +75,15 @@ public class GeminiLlmService {
             }
         });
         
-        sb.append("\nCom base nestes dados, forneca um breve parecer (max 3 linhas) justificando se o paciente tem maior probabilidade de evoluir para 'Cura' ou 'Obito'. Ao final do texto, voce deve escrever exatamente a tag [PREDICAO: CURA] ou [PREDICAO: OBITO].");
+        sb.append("\nCom base nestes dados, forneca a sua analise retornando ESTRITAMENTE o seguinte formato JSON:\n");
+        sb.append("{\n");
+        sb.append("  \"parecer\": \"seu breve parecer de no max 3 linhas justificando o desfecho\",\n");
+        sb.append("  \"veredito\": \"CURA ou OBITO\",\n");
+        sb.append("  \"topFeatures\": [\n");
+        sb.append("    { \"feature\": \"Nome da Variavel (ex: Idade, UTI, Saturacao)\", \"impact\": \"Alto, Medio ou Critico\" }\n");
+        sb.append("  ]\n");
+        sb.append("}\n");
+        sb.append("Retorne as 3 ou 4 variaveis com maior peso na sua decisao.");
         return sb.toString();
     }
 

@@ -159,8 +159,8 @@ public class PredictionService {
         }
 
         // 1. Disparar chamadas LLM Assincronas (Paralelas)
-        CompletableFuture<String> geminiFuture = geminiLlmService.analyzeCaseAsync(requestDto, group.name());
-        CompletableFuture<String> groqFuture = groqLlmService.analyzeCaseAsync(requestDto, group.name());
+        CompletableFuture<com.saude.api.dto.LlmAnalysisResult> geminiFuture = geminiLlmService.analyzeCaseAsync(requestDto, group.name());
+        CompletableFuture<com.saude.api.dto.LlmAnalysisResult> groqFuture = groqLlmService.analyzeCaseAsync(requestDto, group.name());
 
         // 2. Preparar Instancia do Weka
         Map<String, Object> attributes = objectMapper.convertValue(requestDto, new TypeReference<Map<String, Object>>() {});
@@ -178,15 +178,27 @@ public class PredictionService {
             ModelPredictionResult gbResult = runAlgorithm(wrapper.getGradientBoosting(), wrapper.getHeader(), instance, wrapper.getMetrics().get("GradientBoosting"));
 
             // 4. Aguardar o resultado das LLMs (TimeOut de 15s para nao travar a API)
-            String geminiAnalysis = "Indisponivel";
-            String groqAnalysis = "Indisponivel";
+            com.saude.api.dto.LlmAnalysisResult geminiResult = null;
+            com.saude.api.dto.LlmAnalysisResult groqResult = null;
             try {
                 CompletableFuture.allOf(geminiFuture, groqFuture).get(15, TimeUnit.SECONDS);
             } catch (Exception e) {
                 log.warn("Timeout ou Erro aguardando LLMs.");
             }
-            geminiAnalysis = geminiFuture.isDone() && !geminiFuture.isCompletedExceptionally() ? geminiFuture.join() : "Erro de integracao ou Timeout (Gemini).";
-            groqAnalysis = groqFuture.isDone() && !groqFuture.isCompletedExceptionally() ? groqFuture.join() : "Erro de integracao ou Timeout (Groq).";
+            
+            geminiResult = geminiFuture.isDone() && !geminiFuture.isCompletedExceptionally() ? geminiFuture.join() 
+                : com.saude.api.dto.LlmAnalysisResult.builder().parecer("Erro de integracao ou Timeout (Gemini).").build();
+                
+            groqResult = groqFuture.isDone() && !groqFuture.isCompletedExceptionally() ? groqFuture.join() 
+                : com.saude.api.dto.LlmAnalysisResult.builder().parecer("Erro de integracao ou Timeout (Groq).").build();
+
+            String geminiAnalysis = geminiResult.getParecer();
+            String groqAnalysis = groqResult.getParecer();
+
+            // Combinar as topFeatures das LLMs
+            List<com.saude.api.dto.FeatureWeight> topFeatures = new ArrayList<>();
+            if (geminiResult.getTopFeatures() != null) topFeatures.addAll(geminiResult.getTopFeatures());
+            if (groqResult.getTopFeatures() != null) topFeatures.addAll(groqResult.getTopFeatures());
 
             // 5. Consolidar os resultados via Votacao Ponderada (Weighted Majority Voting)
             VerdictBoard board = calculateConsolidated(rfResult, knnResult, lrResult, svmResult, gbResult, geminiAnalysis, groqAnalysis);
@@ -203,6 +215,7 @@ public class PredictionService {
                     .llmAnalysis(geminiAnalysis)
                     .groqAnalysis(groqAnalysis)
                     .verdictBoard(board)
+                    .topFeatures(topFeatures)
                     .processingTimeMs(processingTime)
                     .build();
 

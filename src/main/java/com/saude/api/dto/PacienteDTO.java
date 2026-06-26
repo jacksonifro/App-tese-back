@@ -25,6 +25,8 @@ public class PacienteDTO {
     private String escolaridade;
     private String profissao;
 
+    private Integer qtdPredicoes;
+
     private EnderecoDTO endereco;
     private ContatoDTO contato;
     private VacinacaoDTO vacinacao;

@@ -82,3 +82,10 @@ A API não apenas infere o resultado, mas atua como um prontuário eletrônico u
 - **`Predicao`**: Grava auditoria completa de cada predição disparada, incluindo a *DataHora*, o payload exato que foi enviado para inferência, a resposta completa do Ensemble e o *Tempo de Processamento (ms)*. 
 
 Todo esse ecossistema é salvo em um banco de dados relacional (PostgreSQL), garantindo rastreabilidade acadêmica para a tese e possibilitando futuras reavaliações do banco para calibração contínua dos modelos.
+
+---
+
+## 8. Atualizações Recentes
+
+- **Integração de IA:** Adicionado o modelo Groq ao ecossistema do Super-Ensemble, expandindo as alternativas de LLMs para a predição textual.
+- **Infraestrutura:** Criação de um `Dockerfile` otimizado para corrigir e estabilizar o processo de build e deploy no Railway.

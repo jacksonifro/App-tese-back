@@ -11,4 +11,7 @@ import java.util.List;
 @Repository
 public interface PredicaoRepository extends JpaRepository<Predicao, Long> {
     List<Predicao> findByAtendimentoPacienteIdOrderByDataHoraDesc(Long pacienteId);
+    
+    long countByAtendimentoPacienteId(Long pacienteId);
+    long countByResultadoIn(List<String> resultados);
 }

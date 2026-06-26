@@ -16,5 +16,6 @@ public class PredictionResponse {
     private String llmAnalysis; // Gemini
     private String groqAnalysis;
     private VerdictBoard verdictBoard;
+    private java.util.List<FeatureWeight> topFeatures;
     private long processingTimeMs;
 }
